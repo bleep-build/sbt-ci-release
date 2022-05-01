@@ -42,7 +42,10 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
           FileUtils.DeleteUnknowns.Yes(maxDepth = None),
           soft = false
         )
-        pgp.signedArtifacts(synced.keys)
+        val syncedExisting = synced.collect {
+          case (path, FileUtils.Synced.Changed | FileUtils.Synced.Unchanged | FileUtils.Synced.New) => path
+        }
+        pgp.signedArtifacts(syncedExisting)
 
         sonatype.sonatypeBundleRelease()
       }
