@@ -20,7 +20,7 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
       sys.error("No access to secret variables, doing nothing")
     } else {
       logger.withContext(currentBranch).info(s"Running ci-release")
-      setupGpg()
+      setupGpg(logger.processLogger("ci-release"))
       if (!isTag) {
         if (isSnapshotVersion(dynVer.version)) {
           logger.info(s"No tag push, publishing SNAPSHOT")
@@ -91,7 +91,7 @@ object CiReleasePlugin {
   def isGitlab: Boolean =
     System.getenv("GITLAB_CI") == "true"
 
-  def setupGpg(): Unit = {
+  def setupGpg(processLogger: ProcessLogger): Unit = {
     val versionLine = List("gpg", "--version").!!.linesIterator.toList.head
 
     val TaggedVersion = """(\d{1,14})([\.\d{1,14}]*)((?:-\w+)*)""".r
@@ -108,10 +108,10 @@ object CiReleasePlugin {
       // base64 encoded gpg secrets are too large for Azure variables but
       // they fit within the 4k limit when compressed.
       Files.write(Path.of("gpg.zip"), Base64.getDecoder.decode(secret))
-      s"unzip gpg.zip".!
-      s"gpg $importCommand gpg.key".!
+      s"unzip gpg.zip".!(processLogger)
+      s"gpg $importCommand gpg.key".!(processLogger)
     } else {
-      (s"echo $secret" #| "base64 --decode" #| s"gpg $importCommand").!
+      (s"echo $secret" #| "base64 --decode" #| s"gpg $importCommand").!(processLogger)
     }
   }
 
