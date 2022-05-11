@@ -4,8 +4,8 @@ import bleep.RelPath
 import bleep.internal.FileUtils
 import bleep.logging.Logger
 import com.geirsson.CiReleasePlugin._
-import nosbt.librarymanagement.ScmInfo
 import bleep.tasks.publishing._
+import coursier.core.Info
 
 import java.net.URL
 import java.nio.file.{Files, Path}
@@ -48,6 +48,7 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
         pgp.signedArtifacts(syncedExisting)
 
         sonatype.sonatypeBundleRelease()
+        ()
       }
     }
 }
@@ -108,21 +109,23 @@ object CiReleasePlugin {
       // base64 encoded gpg secrets are too large for Azure variables but
       // they fit within the 4k limit when compressed.
       Files.write(Path.of("gpg.zip"), Base64.getDecoder.decode(secret))
-      s"unzip gpg.zip".!(processLogger)
-      s"gpg $importCommand gpg.key".!(processLogger)
+      s"unzip gpg.zip".!!(processLogger)
+      s"gpg $importCommand gpg.key".!!(processLogger)
+      ()
     } else {
-      (s"echo $secret" #| "base64 --decode" #| s"gpg $importCommand").!(processLogger)
+      (s"echo $secret" #| "base64 --decode" #| s"gpg $importCommand").!!(processLogger)
+      ()
     }
   }
 
   private def gitHubScmInfo(user: String, repo: String) =
-    ScmInfo(
-      new URL(s"https://github.com/$user/$repo"),
-      s"scm:git:https://github.com/$user/$repo.git",
-      Some(s"scm:git:git@github.com:$user/$repo.git")
+    Info.Scm(
+      url = Some(s"https://github.com/$user/$repo"),
+      connection = Some(s"scm:git:https://github.com/$user/$repo.git"),
+      developerConnection = Some(s"scm:git:git@github.com:$user/$repo.git")
     )
 
-  def inferScmInfo: Option[ScmInfo] = {
+  def inferScmInfo: Option[Info.Scm] = {
     import scala.sys.process._
     val identifier = """([^\/]+?)"""
     val GitHubHttps = s"https://github.com/$identifier/$identifier(?:\\.git)?".r
