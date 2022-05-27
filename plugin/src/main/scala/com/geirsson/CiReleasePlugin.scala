@@ -7,7 +7,6 @@ import com.geirsson.CiReleasePlugin._
 import bleep.tasks.publishing._
 import coursier.core.Info
 
-import java.net.URL
 import java.nio.file.{Files, Path}
 import java.util.Base64
 import scala.sys.process._
@@ -36,16 +35,18 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
         logger.info("Tag push detected, publishing a stable release")
         sonatype.sonatypeClean()
 
-        val synced = FileUtils.syncBytes(
+        logger.warn(s"signing ${files.size} files")
+        val signed = pgp.signedArtifacts(files)
+        logger.withContext.warn(s"digesting ${signed.size} files")
+        val digested = Checksums(signed, List(Checksums.Algorithm.Md5, Checksums.Algorithm.Sha1))
+
+        logger.withContext(sonatype.sonatypeBundleDirectory).warn(s"writing bundle of ${digested.size} files")
+        FileUtils.syncBytes(
           sonatype.sonatypeBundleDirectory,
-          files,
+          digested,
           FileUtils.DeleteUnknowns.Yes(maxDepth = None),
           soft = false
         )
-        val syncedExisting = synced.collect {
-          case (path, FileUtils.Synced.Changed | FileUtils.Synced.Unchanged | FileUtils.Synced.New) => path
-        }
-        pgp.signedArtifacts(syncedExisting)
 
         sonatype.sonatypeBundleRelease()
         ()
