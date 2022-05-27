@@ -37,7 +37,7 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
 
         logger.warn(s"signing ${files.size} files")
         val signed = pgp.signedArtifacts(files)
-        logger.withContext.warn(s"digesting ${signed.size} files")
+        logger.warn(s"digesting ${signed.size} files")
         val digested = Checksums(signed, List(Checksums.Algorithm.Md5, Checksums.Algorithm.Sha1))
 
         logger.withContext(sonatype.sonatypeBundleDirectory).warn(s"writing bundle of ${digested.size} files")
