@@ -1,10 +1,9 @@
 package com.geirsson
 
-import bleep.RelPath
-import bleep.internal.FileUtils
 import bleep.logging.Logger
-import com.geirsson.CiReleasePlugin._
 import bleep.tasks.publishing._
+import bleep.{FileSync, RelPath}
+import com.geirsson.CiReleasePlugin._
 import coursier.core.Info
 
 import java.nio.file.{Files, Path}
@@ -41,10 +40,10 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
         val digested = Checksums(signed, List(Checksums.Algorithm.Md5, Checksums.Algorithm.Sha1))
 
         logger.withContext(sonatype.sonatypeBundleDirectory).warn(s"writing bundle of ${digested.size} files")
-        FileUtils.syncBytes(
+        FileSync.syncBytes(
           sonatype.sonatypeBundleDirectory,
           digested,
-          FileUtils.DeleteUnknowns.Yes(maxDepth = None),
+          FileSync.DeleteUnknowns.Yes(maxDepth = None),
           soft = false
         )
 
