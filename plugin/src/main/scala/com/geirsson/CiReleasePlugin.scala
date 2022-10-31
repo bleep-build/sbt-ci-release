@@ -1,6 +1,7 @@
 package com.geirsson
 
 import bleep.logging.Logger
+import bleep.packaging.Checksums
 import bleep.tasks.publishing._
 import bleep.{FileSync, RelPath}
 import com.geirsson.CiReleasePlugin._
