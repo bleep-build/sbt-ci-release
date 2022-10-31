@@ -41,12 +41,14 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
         val digested = Checksums(signed, List(Checksums.Algorithm.Md5, Checksums.Algorithm.Sha1))
 
         logger.withContext(sonatype.sonatypeBundleDirectory).warn(s"writing bundle of ${digested.size} files")
-        FileSync.syncBytes(
-          sonatype.sonatypeBundleDirectory,
-          digested,
-          FileSync.DeleteUnknowns.Yes(maxDepth = None),
-          soft = false
-        )
+        FileSync
+          .syncBytes(
+            sonatype.sonatypeBundleDirectory,
+            digested,
+            FileSync.DeleteUnknowns.Yes(maxDepth = None),
+            soft = false
+          )
+          .log(logger, s"wrote sonatype bundle to ${sonatype.sonatypeBundleDirectory}")
 
         sonatype.sonatypeBundleRelease()
         ()
