@@ -2,10 +2,12 @@ package com.geirsson
 
 import bleep.logging.Logger
 import bleep.packaging.Checksums
-import bleep.tasks.publishing._
 import bleep.{FileSync, RelPath}
 import com.geirsson.CiReleasePlugin._
+import com.jsuereth.sbtpgp.PgpPlugin
 import coursier.core.Info
+import sbtdynver.DynVerPlugin
+import xerial.sbt.Sonatype
 
 import java.nio.file.{Files, Path}
 import java.util.Base64
