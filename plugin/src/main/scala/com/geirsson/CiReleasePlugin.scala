@@ -1,12 +1,11 @@
 package bleep.plugin.cirelease
 
 import bleep.logging.Logger
-import bleep.packaging.Checksums
 import bleep.plugin.cirelease.CiReleasePlugin._
 import bleep.plugin.dynver.DynVerPlugin
 import bleep.plugin.pgp.PgpPlugin
 import bleep.plugin.sonatype.Sonatype
-import bleep.{FileSync, RelPath}
+import bleep.{Checksums, FileSync, RelPath}
 import coursier.core.Info
 
 import java.nio.file.{Files, Path}
