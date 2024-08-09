@@ -1,16 +1,17 @@
-package bleep.plugin.cirelease
+package bleep
+package plugin
+package cirelease
 
 import bleep.logging.Logger
-import bleep.plugin.cirelease.CiReleasePlugin._
+import bleep.plugin.cirelease.CiReleasePlugin.*
 import bleep.plugin.dynver.DynVerPlugin
 import bleep.plugin.pgp.PgpPlugin
 import bleep.plugin.sonatype.Sonatype
-import bleep.{Checksums, FileSync, RelPath}
 import coursier.core.Info
 
 import java.nio.file.{Files, Path}
 import java.util.Base64
-import scala.sys.process._
+import scala.sys.process.*
 import scala.util.control.NonFatal
 
 class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: DynVerPlugin, val pgp: PgpPlugin) {
@@ -51,8 +52,7 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
           )
           .log(logger, s"wrote sonatype bundle to ${sonatype.sonatypeBundleDirectory}")
 
-        sonatype.sonatypeBundleRelease()
-        ()
+        sonatype.sonatypeBundleRelease().discard()
       }
     }
 }
@@ -113,13 +113,10 @@ object CiReleasePlugin {
       // base64 encoded gpg secrets are too large for Azure variables but
       // they fit within the 4k limit when compressed.
       Files.write(Path.of("gpg.zip"), Base64.getDecoder.decode(secret))
-      s"unzip gpg.zip".!!(processLogger)
-      s"gpg $importCommand gpg.key".!!(processLogger)
-      ()
-    } else {
-      (s"echo $secret" #| "base64 --decode" #| s"gpg $importCommand").!!(processLogger)
-      ()
-    }
+      s"unzip gpg.zip".!!(processLogger).discard()
+      s"gpg $importCommand gpg.key".!!(processLogger).discard()
+    } else
+      (s"echo $secret" #| "base64 --decode" #| s"gpg $importCommand").!!(processLogger).discard()
   }
 
   private def gitHubScmInfo(user: String, repo: String) =
@@ -130,7 +127,7 @@ object CiReleasePlugin {
     )
 
   def inferScmInfo: Option[Info.Scm] = {
-    import scala.sys.process._
+    import scala.sys.process.*
     val identifier = """([^\/]+?)"""
     val GitHubHttps = s"https://github.com/$identifier/$identifier(?:\\.git)?".r
     val GitHubGit = s"git://github.com:$identifier/$identifier(?:\\.git)?".r
