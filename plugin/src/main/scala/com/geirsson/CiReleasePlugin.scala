@@ -7,6 +7,7 @@ import bleep.plugin.cirelease.CiReleasePlugin.*
 import bleep.plugin.dynver.DynVerPlugin
 import bleep.plugin.pgp.PgpPlugin
 import bleep.plugin.sonatype.Sonatype
+import com.geirsson.PipeFail.PipeFailOps
 import coursier.core.Info
 
 import java.nio.file.{Files, Path}
@@ -116,7 +117,7 @@ object CiReleasePlugin {
       s"unzip gpg.zip".!!(processLogger).discard()
       s"gpg $importCommand gpg.key".!!(processLogger).discard()
     } else
-      (s"echo $secret" #| "base64 --decode" #| s"gpg $importCommand").!!(processLogger).discard()
+      (s"echo $secret" #|! "base64 --decode" #|! s"gpg $importCommand").!!(processLogger).discard()
   }
 
   private def gitHubScmInfo(user: String, repo: String) =
@@ -129,7 +130,8 @@ object CiReleasePlugin {
   def inferScmInfo: Option[Info.Scm] = {
     import scala.sys.process.*
     val identifier = """([^\/]+?)"""
-    val GitHubHttps = s"https://github.com/$identifier/$identifier(?:\\.git)?".r
+        val GitHubHttps =
+          s"https://github.com/$identifier/$identifier(?:\\.git)?".r
     val GitHubGit = s"git://github.com:$identifier/$identifier(?:\\.git)?".r
     val GitHubSsh = s"git@github.com:$identifier/$identifier(?:\\.git)?".r
     try {
