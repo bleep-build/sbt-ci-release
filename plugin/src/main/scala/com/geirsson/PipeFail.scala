@@ -9,7 +9,7 @@ object PipeFail {
     @volatile
     private var error: Option[String] = None
 
-    def #|!(p2: R)(implicit ev: R => ProcessBuilder): ProcessBuilder = {
+    def #|![R2](p2: R2)(implicit ev: R => ProcessBuilder, ev2: R2 => ProcessBuilder): ProcessBuilder = {
       val logger = new ProcessLogger {
         override def out(s: => String): Unit = ()
 
@@ -19,8 +19,8 @@ object PipeFail {
 
         override def buffer[T](f: => T): T = f
       }
-      Try(p1.!!(logger)).map(result =>
-        (p2 #< new ByteArrayInputStream(result.getBytes))
+      Try(ev(p1).!!(logger)).map(result =>
+        (ev2(p2) #< new ByteArrayInputStream(result.getBytes))
       ) match {
         case Failure(exception) =>
           error match {
