@@ -21,7 +21,7 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
     if (!isSecure) {
       sys.error("No access to secret variables, doing nothing")
     } else {
-      logger.withContext(currentBranch).info(s"Running ci-release")
+      logger.withContext("currentBranch", currentBranch).info(s"Running ci-release")
       setupGpg(logger.processLogger("ci-release"))
       if (!isTag) {
         if (isSnapshotVersion(dynVer.version)) {
@@ -43,7 +43,7 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
         logger.warn(s"digesting ${signed.size} files")
         val digested = Checksums(signed, List(Checksums.Algorithm.Md5, Checksums.Algorithm.Sha1))
 
-        logger.withContext(sonatype.sonatypeBundleDirectory).warn(s"writing bundle of ${digested.size} files")
+        logger.withContext("sonatypeBundleDirectory", sonatype.sonatypeBundleDirectory).warn(s"writing bundle of ${digested.size} files")
         FileSync
           .syncBytes(
             sonatype.sonatypeBundleDirectory,
@@ -130,8 +130,8 @@ object CiReleasePlugin {
   def inferScmInfo: Option[Info.Scm] = {
     import scala.sys.process.*
     val identifier = """([^\/]+?)"""
-        val GitHubHttps =
-          s"https://github.com/$identifier/$identifier(?:\\.git)?".r
+    val GitHubHttps =
+      s"https://github.com/$identifier/$identifier(?:\\.git)?".r
     val GitHubGit = s"git://github.com:$identifier/$identifier(?:\\.git)?".r
     val GitHubSsh = s"git@github.com:$identifier/$identifier(?:\\.git)?".r
     try {
