@@ -2,13 +2,13 @@ package bleep
 package plugin
 package cirelease
 
-import bleep.logging.Logger
 import bleep.plugin.cirelease.CiReleasePlugin.*
 import bleep.plugin.dynver.DynVerPlugin
 import bleep.plugin.pgp.PgpPlugin
 import bleep.plugin.sonatype.Sonatype
 import com.geirsson.PipeFail.PipeFailOps
 import coursier.core.Info
+import ryddig.{Logger, processLogger}
 
 import java.nio.file.{Files, Path}
 import java.util.Base64
@@ -22,7 +22,7 @@ class CiReleasePlugin(val logger: Logger, val sonatype: Sonatype, val dynVer: Dy
       sys.error("No access to secret variables, doing nothing")
     } else {
       logger.withContext("currentBranch", currentBranch).info(s"Running ci-release")
-      setupGpg(logger.processLogger("ci-release"))
+      setupGpg(processLogger(logger, "ci-release"))
       if (!isTag) {
         if (isSnapshotVersion(dynVer.version)) {
           logger.info(s"No tag push, publishing SNAPSHOT")
