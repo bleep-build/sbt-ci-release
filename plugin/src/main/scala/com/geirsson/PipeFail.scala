@@ -22,11 +22,11 @@ object PipeFail {
       Try(ev(p1).!!(logger)).map(result =>
         (ev2(p2) #< new ByteArrayInputStream(result.getBytes))
       ) match {
-        case Failure(exception) =>
+        case Failure(ex) =>
           error match {
             case Some(errorMessageFromPipe) =>
-              throw new RuntimeException(errorMessageFromPipe, exception)
-            case None => throw exception
+              throw new RuntimeException(errorMessageFromPipe, ex)
+            case None => throw ex
           }
         case Success(value) => value
       }

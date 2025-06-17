@@ -6,6 +6,7 @@ import bleep.plugin.cirelease.CiReleasePlugin.*
 import bleep.plugin.dynver.DynVerPlugin
 import bleep.plugin.pgp.PgpPlugin
 import bleep.plugin.sonatype.Sonatype
+import bleep.{Checksums, FileSync, RelPath, DiscardOps}
 import com.geirsson.PipeFail.PipeFailOps
 import coursier.core.Info
 import ryddig.{Logger, processLogger}
@@ -74,18 +75,18 @@ object CiReleasePlugin {
 
   def releaseTag: String =
     Option(System.getenv("TRAVIS_TAG"))
-      .orElse(Option(System.getenv("BUILD_SOURCEBRANCH")))
-      .orElse(Option(System.getenv("GITHUB_REF")))
       .orElse(Option(System.getenv("CIRCLE_TAG")))
       .orElse(Option(System.getenv("CI_COMMIT_TAG")))
+      .orElse(Option(System.getenv("BUILD_SOURCEBRANCH")))
+      .orElse(Option(System.getenv("GITHUB_REF")))
       .getOrElse("<unknown>")
 
   def currentBranch: String =
     Option(System.getenv("TRAVIS_BRANCH"))
-      .orElse(Option(System.getenv("BUILD_SOURCEBRANCH")))
-      .orElse(Option(System.getenv("GITHUB_REF")))
       .orElse(Option(System.getenv("CIRCLE_BRANCH")))
       .orElse(Option(System.getenv("CI_COMMIT_BRANCH")))
+      .orElse(Option(System.getenv("BUILD_SOURCEBRANCH")))
+      .orElse(Option(System.getenv("GITHUB_REF")))
       .getOrElse("<unknown>")
 
   def isAzure: Boolean =
@@ -113,7 +114,7 @@ object CiReleasePlugin {
     if (isAzure) {
       // base64 encoded gpg secrets are too large for Azure variables but
       // they fit within the 4k limit when compressed.
-      Files.write(Path.of("gpg.zip"), Base64.getDecoder.decode(secret))
+      Files.write(java.nio.file.Paths.get("gpg.zip"), Base64.getDecoder.decode(secret))
       s"unzip gpg.zip".!!(processLogger).discard()
       s"gpg $importCommand gpg.key".!!(processLogger).discard()
     } else
@@ -147,6 +148,5 @@ object CiReleasePlugin {
     }
   }
 
-  def isSnapshotVersion(v: String): Boolean =
-    v.endsWith("-SNAPSHOT")
+  def isSnapshotVersion(v: String): Boolean = v.endsWith("-SNAPSHOT")
 }

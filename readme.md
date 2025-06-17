@@ -2,8 +2,8 @@
 
 ![CI](https://github.com/sbt/sbt-ci-release/workflows/CI/badge.svg)
 
-This is an sbt plugin to help automate releases to Sonatype and Maven Central
-from GitHub Actions.
+sbt-ci-release is an sbt plugin to help automate releases to Sonatype and
+the Central Repository (aka Maven Central) from CI environments such as GitHub Actions.
 
 - git tag pushes are published as regular releases to Maven Central
 - merge into main commits are published as -SNAPSHOT with a unique version
@@ -12,6 +12,16 @@ from GitHub Actions.
 Beware that publishing from GitHub Actions requires you to expose Sonatype
 credentials as secret environment variables in GitHub Actions jobs. However,
 secret environment variables are not accessible during pull requests.
+
+**Note**: Sonatype has announced to [sunset](https://central.sonatype.org/news/20250326_ossrh_sunset/)
+the Legacy OSSRH endpoint to publish to the Central Repository on 2025-06-30.
+As of May, we recommend using sbt-ci-release 1.11.0 or later after you migrate to
+the Central Portal publishing, and use sbt-ci-release 1.9.3 for the Legacy OSSRH.
+
+|            | Central Portal         | Legacy OSSRH (Sunset on 2025-06-30)  |
+|------------|------------------------|--------------------------------------|
+| sbt 1.11.x | sbt-ci-release 1.11.0+ | ⚠️                                   |
+| sbt 1.10.x | ⚠️                     | sbt-ci-release 1.9.3                 |
 
 Let's get started!
 
@@ -22,8 +32,6 @@ Let's get started!
 - [sbt](#sbt)
 - [GPG](#gpg)
 - [Secrets](#secrets)
-  - [GitHub Actions](#github-actions)
-  - [Travis](#travis)
 - [Git](#git)
 - [FAQ](#faq)
   - [How do I disable publishing in certain projects?](#how-do-i-disable-publishing-in-certain-projects)
@@ -31,7 +39,7 @@ Let's get started!
   - [How do I publish cross-built Scala.js projects?](#how-do-i-publish-cross-built-scalajs-projects)
   - [Can I depend on Maven Central releases immediately?](#can-i-depend-on-maven-central-releases-immediately)
   - [How do I depend on the SNAPSHOT releases?](#how-do-i-depend-on-the-snapshot-releases)
-  - [What about other CIs environments than Travis?](#what-about-other-cis-environments-than-travis)
+  - [What about other CI environments?](#what-about-other-ci-environments)
   - [Does sbt-ci-release work for sbt 0.13?](#does-sbt-ci-release-work-for-sbt-013)
   - [How do I publish sbt plugins?](#how-do-i-publish-sbt-plugins)
   - [java.io.IOException: secret key ring doesn't start with secret key tag: tag 0xffffffff](#javaioioexception-secret-key-ring-doesnt-start-with-secret-key-tag-tag-0xffffffff)
@@ -62,10 +70,9 @@ Hi, I would like to publish under the groupId: io.github.sbt.
 It's my GitHub account https://github.com/sbt/
 ```
 
-### Optional: create user tokens
-
-If you prefer not to save your actual username and password in GitHub Actions
-settings below, generate your user tokens:
+Sonatype no longer allows using your actual username and password to
+authenticate during publishing. Instead, you must use the name and password
+from your "user token".
 
 - login to https://s01.oss.sonatype.org/ (or https://oss.sonatype.org/ if your
   Sonatype account was created before February 2021),
@@ -85,6 +92,11 @@ Next, install this plugin in `project/plugins.sbt`
 // sbt 1 only, see FAQ for 0.13 support
 addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "<version>")
 ```
+
+|            | Central Portal         | Legacy OSSRH (Sunset on 2025-06-30)  |
+|------------|------------------------|--------------------------------------|
+| sbt 1.11.x | sbt-ci-release 1.11.0+ | ⚠️                                   |
+| sbt 1.10.x | ⚠️                     | sbt-ci-release 1.9.3                 |
 
 By installing `sbt-ci-release` the following sbt plugins are also brought in:
 
@@ -143,7 +155,7 @@ gpg --gen-key
   "sbt-ci-release bot".
 - For email, use your own email address
 - For passphrase, generate a random password with a password manager. This will be the
-  environment variables PGP_PASSPHRASE in your CI. Take note of `PGP_PASSPHRASE`.
+  environment variables `PGP_PASSPHRASE` in your CI config. Take note of `PGP_PASSPHRASE`.
 
 At the end you'll see output like this
 
@@ -191,47 +203,34 @@ or run:
 ```bash
 # macOS
 gpg --keyserver hkp://keyserver.ubuntu.com --send-key $LONG_ID && \
- gpg --keyserver hkp://pgp.mit.edu --send-key $LONG_ID && \
- gpg --keyserver hkp://pool.sks-keyservers.net --send-key $LONG_ID
+ gpg --keyserver hkp://pgp.mit.edu --send-key $LONG_ID
 # linux
 gpg --keyserver hkp://keyserver.ubuntu.com --send-key $LONG_ID && \
- gpg --keyserver hkp://pgp.mit.edu --send-key $LONG_ID && \
- gpg --keyserver hkp://pool.sks-keyservers.net --send-key $LONG_ID
+ gpg --keyserver hkp://pgp.mit.edu --send-key $LONG_ID
 # Windows
 gpg --keyserver hkp://keyserver.ubuntu.com --send-key %LONG_ID% && \
- gpg --keyserver hkp://pgp.mit.edu --send-key %LONG_ID% && \
- gpg --keyserver hkp://pool.sks-keyservers.net --send-key %LONG_ID%
+ gpg --keyserver hkp://pgp.mit.edu --send-key %LONG_ID%
 ```
 
 ## Secrets
 
-Next, you'll need to declare four environment variables in your CI. Open the
-settings page for your CI provider.
+Next, you'll need to declare four environment variables in your CI.
 
-- **GitHub Actions**:
-
-  Select `Settings -> Secrets and variables -> Actions -> New repository secret` to add each of the
-  required variables as shown in the next figure:
+Select `Settings -> Secrets and variables -> Actions -> New repository secret` to add each of the
+required variables as shown in the next figure:
 
   ![github-secrets-2021-01-27](https://user-images.githubusercontent.com/933058/111891685-e0e12400-89b1-11eb-929c-24f5b48b24de.png)
 
-  When complete, your secrets settings should look like the following:
+When complete, your secrets settings should look like the following:
 
   ![github-env-vars-2021-01-27](https://user-images.githubusercontent.com/933058/111891688-ec344f80-89b1-11eb-9037-9899e5183ad9.png)
-
-- **Travis CI**:
-
-  Make sure that "Build pushed branches" setting is enabled.
 
 Add the following secrets:
 
 - `PGP_PASSPHRASE`: The randomly generated password you used to create a fresh
-  gpg key. **For Travis Only:** If the password contains bash special
-  characters, make sure to escape it by wrapping it in single quotes
-  `'my?pa$$word'`, see
-  [Travis Environment Variables](https://docs.travis-ci.com/user/environment-variables/#defining-variables-in-repository-settings).
+  gpg key.
 - `PGP_SECRET`: The base64 encoded secret of your private key that you can
-  export from the command line like here below
+  export from the command line like here below.
 
 ```
 # macOS
@@ -247,18 +246,12 @@ gpg --armor --export-secret-keys %LONG_ID% | openssl base64
 ```
 
 *If you try to display the base64 encoded string in the terminal, some shells (like zsh or fish)
-may include an additional % character at the end, to mark the end of content which was not terminated by a newline character. This does not indicate a problem.*
-- `SONATYPE_PASSWORD`: The password you use to log into
-  https://s01.oss.sonatype.org/ (or https://oss.sonatype.org/ if your Sonatype
-  account was created before February 2021). Alternatively, the password part of
-  the user token if you generated one above. **For Travis Only:** If the
-  password contains bash special characters, make sure to escape it by wrapping
-  it in single quotes `'my?pa$$word'`, see
-  [Travis Environment Variables](https://docs.travis-ci.com/user/environment-variables/#defining-variables-in-repository-settings).
-- `SONATYPE_USERNAME`: The username you use to log into
-  https://s01.oss.sonatype.org/ (or https://oss.sonatype.org/ if your Sonatype
-  account was created before 2021). Alternatively, the name part of the user
-  token if you generated one above.
+may include an additional % character at the end, to mark the end of content which was not terminated by a newline character. This does not indicate a problem.
+Note for Windows - delete any linebreaks or spaces when copying the encoded string from terminal.*
+- `SONATYPE_PASSWORD`: The password part of your Sonatype
+  [OSSRH token](https://central.sonatype.org/publish/generate-token/), generated on your Nexus server https://s01.oss.sonatype.org/ or https://oss.sonatype.org/ (not the account password!).
+- `SONATYPE_USERNAME`: The username part of your Sonatype
+  user token (not the account username!).
 - (optional) `CI_RELEASE`: the command to publish all artifacts for stable
   releases. Defaults to `+publishSigned` if not provided.
 - (optional) `CI_SNAPSHOT_RELEASE`: the command to publish all artifacts for a
@@ -267,8 +260,6 @@ may include an additional % character at the end, to mark the end of content whi
   staged repository. Useful when, for example, also dealing with non-sbt
   projects to change to `sonatypeReleaseAll`. Defaults to
   `sonatypeBundleRelease` if not provided.
-
-### GitHub Actions
 
 Run the following command to install the same
 [`release.yml`](https://github.com/sbt/sbt-ci-release/blob/main/.github/workflows/release.yml)
@@ -280,61 +271,6 @@ mkdir -p .github/workflows && \
 ```
 
 Commit the file and merge into main.
-
-### Travis
-
-> Skip this step if you're using GitHub Actions. > Unless you have a specific
-> reason to use Travis, we recommend using GitHub Actions because > it's easier
-> to configure.
-
-Next, update `.travis.yml` to trigger `ci-release` on successful merge into
-master and on tag push. There are many ways to do this, but I recommend using
-[Travis "build stages"](https://docs.travis-ci.com/user/build-stages/). It's not
-necessary to use build stages but they make it easy to avoid publishing the same
-module multiple times from parallel jobs.
-
-- First, ensure that git tags are always fetched so that sbt-dynver can pick up
-  the correct `version`
-
-```yml
-before_install:
-  - git fetch --tags
-```
-
-- Next, define `test` and `release` build stages
-
-```yml
-stages:
-  - name: test
-  - name: release
-    if: ((branch = master AND type = push) OR (tag IS present)) AND NOT fork
-```
-
-- Lastly, define your build matrix with `ci-release` at the bottom, for example:
-
-```yml
-jobs:
-  include:
-    # stage="test" if no stage is specified
-    - name: compile
-      script: sbt compile
-    - name: formatting
-      script: ./bin/scalafmt --test
-    # run ci-release only if previous stages passed
-    - stage: release
-      script: sbt ci-release
-```
-
-Notes:
-
-- if we use `after_success` instead of build stages, we would run `ci-release`
-  after both `formatting` and `compile`. As long as you make sure you don't
-  publish the same module multiple times, you can use any Travis configuration
-  you like
-- the `name: compile` part is optional but it makes it easy to distinguish
-  different jobs in the Travis UI
-
-![build__48_-_sbt-ci-release_-_travis_ci](https://user-images.githubusercontent.com/1408093/41810442-a44ef526-76fe-11e8-92f4-4c4b61af4d38.jpg)
 
 ## Git
 
@@ -352,12 +288,59 @@ Note that the tag version MUST start with `v`.
 
 It is normal that something fails on the first attempt to publish from CI. Even
 if it takes 10 attempts to get it right, it's still worth it because it's so
-nice to have automatic CI releases. If all is correctly setup, your Travis jobs
-page will look like this:
-
-<img width="1058" alt="screen shot 2018-06-23 at 15 48 43" src="https://user-images.githubusercontent.com/1408093/41810386-b8c11198-76fd-11e8-8be1-54b84181e60d.png">
+nice to have automatic CI releases.
 
 Enjoy 👌
+
+### Back-publishing support
+
+sbt-ci-release implements a mini-DSL for the Git tag for back publishing purpose, which is useful if you maintain a compiler plugin, library for Scala Native, or an sbt plugin during 2.x migration etc.
+
+```
+v1.2.3[@3.x|@2.n.x|@a.b.c][@command][#comment]
+```
+
+- `#` is used for comments, which is useful if you need to use the same command multiple times
+- `@3.x` expands to `++3.x`, and if no other commands follow, `;++3.x;publishSigned`
+- `@2.13.x` expands to `++2.13.x`, and if no other commands follow, `;++2.13.x;publishSigned`
+- Other commands such as `@foo/publishSigned` expands to `foo/publishSigned`
+
+#### Case 1: Publish all subprojects for Scala 2.13.15
+
+`v1.2.3@2.13.15`
+
+#### Case 2: Publish all subprojects for Scala 3.x
+
+`v1.2.3@3.x`. Optionally we can add a comment: `v1.2.3@3.x#comment`.
+
+We can use this to back publish sbt 2.x plugins.
+
+1. Branch off of `v1.2.3` to create `release/1.2.3` branch, and send a PR to update sbt version
+2. Tag the brach to `v1.2.3@3.x#sbt2.0.0-Mn`
+
+#### Case 3: Publish some subprojects for Scala 2.13.15
+
+`v1.2.3@2.13.15@foo/publishSigned`
+
+You can create a subproject to aggregate 2 or more subprojects.
+
+#### Case 4: Publish some subprojects for supported Scala versions
+
+`v1.2.3@+foo_native/publishSigned#comment`
+
+1. Branch off of `v1.2.3` to create `release/1.2.3` branch, and send a PR to update the Scala Native version.
+2. Tag the branch to `v1.2.3@+foo_native/publishSigned#native0.5`
+
+#### Case 5: Minimize the use of command
+
+`v1.2.3#unique_comment`, for example `v1.2.3#native0.5_3`
+
+If you prefer to keep most of the information in a git branch instead, you can just use the comment functionality.
+
+1. Branch off of `v1.2.3` to create `release/1.2.3` branch, and send a PR to:
+   a. Update appropriate dependency (sbt, Scala Native etc)
+   b. Modify the `CI_RELEASE` environment variable to encode the actions you want to take, like `;++3.x;foo_native/publishSigned`. For GitHub Actions, it would be in `.github/workflows/release.yml`
+2. Tag the branch to `v1.2.3#unique_comment`. For record keeping, encode the version you're trying to back publishing for e.g. `v1.2.3#native0.5_3`
 
 ## FAQ
 
@@ -405,8 +388,6 @@ Next, add an additional `ci-release` step in your CI config to publish the
 custom Scala.js version
 
 ```diff
-// .travis.yml
-  sbt ci-release
 + SCALAJS_VERSION=0.6.31 sbt ci-release
 ```
 
@@ -461,13 +442,14 @@ coursier fetch com.github.sbt:scalafmt-cli_2.12:1.5.0-SNAPSHOT -r sonatype:snaps
 
 Use `-r https://s01.oss.sonatype.org/content/repositories/snapshots` instead if your Sonatype account was created after February 2021.
 
-### What about other CIs environments than Travis?
+### What about other CI environments?
 
-- This project uses a github workflow,
-  [which you can review here](https://github.com/sbt/sbt-ci-release/tree/master/.github/workflows)
-- [CircleCI](https://circleci.com/) is supported
+If you are still using Travis-CI, see old revisions of this readme
+for instructions.
 
-You can try
+[CircleCI](https://circleci.com/) should work as well.
+
+You could also try
 [sbt-release-early](https://github.com/scalacenter/sbt-release-early).
 
 Alternatively, the source code for sbt-ci-release is only ~50 loc, see
@@ -501,12 +483,6 @@ repository. If you pushed a tag, make sure the tag version number starts with
 `v`. This error can happen if you tag with the version `0.1.0` instead of
 `v0.1.0`.
 
-### java.io.IOException: Access to URL was refused by the server: Unauthorized
-
-Make sure that `SONATYPE_PASSWORD` uses proper escaping if it contains special
-characters as documented on
-[Travis Environment Variables](https://docs.travis-ci.com/user/environment-variables/#defining-variables-in-repository-settings).
-
 ### Failed: signature-staging, failureMessage:Missing Signature:
 
 Make sure to upgrade to the latest sbt-ci-release, which could fix this error.
@@ -537,10 +513,8 @@ project?
 [Add it in a PR!](https://github.com/sbt/sbt-ci-release/edit/main/readme.md)
 
 - [AlexITC/scala-js-chrome](https://github.com/AlexITC/scala-js-chrome)
-- [almond-sh/almond](https://github.com/almond-sh/almond/)
 - [an-tex/sc8s](https://github.com/an-tex/sc8s)
 - [bitcoin-s/bitcoin-s](https://github.com/bitcoin-s/bitcoin-s)
-- [coursier/coursier](https://github.com/coursier/coursier/)
 - [ekrich/sconfig](https://github.com/ekrich/sconfig/)
 - [fd4s/fs2-kafka](https://github.com/fd4s/fs2-kafka)
 - [fd4s/vulcan](https://github.com/fd4s/vulcan)
@@ -579,8 +553,7 @@ setup.
 - [sbt-ci-release-early](https://github.com/ShiftLeftSecurity/sbt-ci-release-early):
   very similar to sbt-ci-release except doesn't use SNAPSHOT versions.
 - [sbt-release-early](https://github.com/scalacenter/sbt-release-early):
-  additionally supports publishing to Bintray and other CI environments than
-  Travis.
+  additionally supports other publishing providers and other CI environments.
 - [sbt-rig](https://github.com/Verizon/sbt-rig): additionally supporting
   publishing code coverage reports, managing test dependencies and publishing
   docs.
