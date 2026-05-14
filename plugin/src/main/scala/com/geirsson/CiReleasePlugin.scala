@@ -6,12 +6,12 @@ import bleep.plugin.cirelease.CiReleasePlugin.*
 import bleep.plugin.dynver.DynVerPlugin
 import bleep.plugin.pgp.PgpPlugin
 import bleep.plugin.sonatype.Sonatype
-import bleep.{Checksums, FileSync, RelPath, DiscardOps}
+import bleep.{Checksums, DiscardOps, FileSync, RelPath}
 import com.geirsson.PipeFail.PipeFailOps
 import coursier.core.Info
-import ryddig.{Logger, processLogger}
+import ryddig.{processLogger, Logger}
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Files
 import java.util.Base64
 import scala.sys.process.*
 import scala.util.control.NonFatal

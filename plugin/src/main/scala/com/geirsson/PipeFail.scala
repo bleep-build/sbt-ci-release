@@ -13,15 +13,12 @@ object PipeFail {
       val logger = new ProcessLogger {
         override def out(s: => String): Unit = ()
 
-        override def err(s: => String): Unit = {
+        override def err(s: => String): Unit =
           error = Some(s)
-        }
 
         override def buffer[T](f: => T): T = f
       }
-      Try(ev(p1).!!(logger)).map(result =>
-        (ev2(p2) #< new ByteArrayInputStream(result.getBytes))
-      ) match {
+      Try(ev(p1).!!(logger)).map(result => ev2(p2) #< new ByteArrayInputStream(result.getBytes)) match {
         case Failure(ex) =>
           error match {
             case Some(errorMessageFromPipe) =>
